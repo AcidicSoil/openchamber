@@ -24,6 +24,7 @@ import { MobileOverlayPanel } from '@/components/ui/MobileOverlayPanel';
 import { Icon } from "@/components/icon/Icon";
 import { opencodeClient } from '@/lib/opencode/client';
 import { useI18n } from '@/lib/i18n';
+import { getDefaultProjectDirectory, setDefaultProjectDirectory } from '@/lib/defaultProjectDirectory';
 import {
   isFilesystemError,
   type FilesystemErrorReason,
@@ -204,6 +205,10 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       const resolved = await resolveFreshFilesystemHome();
       if (cancelled) return;
       setDialogHomeDirectory(resolved || homeDirectory || '');
+      const defaultProjectDirectory = getDefaultProjectDirectory();
+      if (defaultProjectDirectory) {
+        setQuery(ensureBrowseDirectoryPath(normalizeSeparators(defaultProjectDirectory)));
+      }
       requestAnimationFrame(() => focusPathInput(inputRef.current));
     };
     void resolveHome();
@@ -409,6 +414,13 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
   const handleClose = React.useCallback(() => {
     onOpenChange(false);
   }, [onOpenChange]);
+
+  const handleSetDefaultProjectDirectory = React.useCallback(() => {
+    const directory = trimTrailingSeparators(browseDirectoryAbsolutePath);
+    if (!directory) return;
+    setDefaultProjectDirectory(directory);
+    toast.success('Default project directory updated');
+  }, [browseDirectoryAbsolutePath]);
 
   const openProjectDraft = React.useCallback((projectId: string, projectPath: string) => {
     setActiveMainTab('chat');
@@ -738,6 +750,14 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
     <>
       {!isMobile ? footerHints : null}
       <div className={cn('flex w-full flex-row justify-end gap-2 sm:w-auto', isMobile && 'justify-stretch')}>
+        <Button
+          variant="ghost"
+          size="xs"
+          onClick={handleSetDefaultProjectDirectory}
+          disabled={!browseDirectoryAbsolutePath || isConfirming || isOpeningFinder}
+        >
+          Set default
+        </Button>
         {canRequestAccess ? (
           <Button variant="ghost" size="xs" onClick={handleOpenInFinder} disabled={isConfirming || isOpeningFinder || isCloneMode}>
             {isOpeningFinder ? t('directoryExplorerDialog.actions.openingFinder') : t('directoryExplorerDialog.actions.openInFinder')}
